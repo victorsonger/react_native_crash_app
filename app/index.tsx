@@ -2,7 +2,7 @@ import { Text, Button, View, Image, ScrollView } from "react-native";
 import { Redirect, router } from "expo-router";
 import { RootStackParamList } from "@/types";
 
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+// import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { images } from "@/constants";
 import CustomButton from "@/components/CustomButton";
@@ -11,10 +11,10 @@ import { useEffect, useState } from "react";
 import { useGlobalContext } from "@/context/GlobalProvider";
 import Loader from "@/components/Loader";
 
-type HomeScreenNavigationProp = NativeStackNavigationProp<
-  RootStackParamList,
-  "home"
->;
+// type HomeScreenNavigationProp = NativeStackNavigationProp<
+//   RootStackParamList,
+//   "home"
+// >;
 
 export default function Index() {
   const { loading, isLogged } = useGlobalContext();

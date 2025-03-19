@@ -18,6 +18,7 @@ import Trending from "@/components/Trending";
 import EmptyState from "@/components/EmptyState";
 import { getAllPosts, getLatestPosts } from "@/lib/appwrite";
 import useAppwrite from "@/lib/useAppwrite";
+import { usePathname } from "expo-router";
 
 const posts: IVideoItem[] = [
   // {
@@ -33,28 +34,28 @@ const posts: IVideoItem[] = [
 export default function Home() {
   const { data: posts, refetch } = useAppwrite<IVideoItem>(getAllPosts);
   const { data: latestPosts } = useAppwrite<IVideoItem>(getLatestPosts);
-
   const [refreshing, setRefreshing] = useState(false);
 
-  const onRefresh = async () => {
-    console.log("onRefresh");
+  // 简化刷新逻辑
+  const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    // 重新请求列表
     await refetch();
     setRefreshing(false);
-  };
+  }, [refetch]);
 
-  useFocusEffect(
-    // 这里为了能让create结束后立即看到效果
-    // 先设置一下每次回到首页都重新请求列表
-    useCallback(() => {
-      console.log('Home Screen is focused');
+  // 使用 useEffect 替代 useFocusEffect （但是这样就没法在每次从其他tab切换回home时，执行对应的事件了，就无法在create tab上传完新视频后回到home直接刷新了）
+  // useEffect(() => {
+  //   onRefresh();
+  // }, []);
+
+  // 下面是替代方案，通过监听路由变化，当路径为/home时，执行刷新逻辑
+  const pathname = usePathname();
+  useEffect(() => {
+    console.log('pathname---', pathname);
+    if (pathname === '/home') {
       onRefresh();
-      return () => {
-        console.log('Home Screen is unfocused');
-      };
-    }, [])
-  );
+    }
+  }, [pathname]);
   return (
     <SafeAreaView className="bg-primary">
       <FlatList
