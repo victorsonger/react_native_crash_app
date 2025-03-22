@@ -1,25 +1,94 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AVPlaybackStatusSuccess, ResizeMode, Video } from "expo-av";
-import { View, Text, TouchableOpacity, Image, Platform } from "react-native";
-
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Image,
+  Platform,
+  Alert,
+} from "react-native";
 import { Popover } from "@ant-design/react-native";
 import { icons } from "../constants";
+import {
+  bookmarkVideo,
+  unbookmarkVideo,
+  isVideoBookmarked,
+} from "../lib/appwrite";
+import { useGlobalContext } from "../context/GlobalProvider";
 
 const Item = Popover.Item;
 
-const VideoCard = ({ title, creator, avatar, thumbnail, video }) => {
+const VideoCard = ({
+  id,
+  title,
+  creator,
+  avatar,
+  thumbnail,
+  video
+}) => {
   const [play, setPlay] = useState(false);
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const { user } = useGlobalContext();
 
-  const overlay = [1, 2, 3].map((i, index) => (
-    <Item key={index} value={`option ${i}`}>
-      <Text className="flex items-center space-x-2 cursor-pointer active:bg-gray-300 text-cyan-50 p-2 rounded-md">
-        option {i}
+  useEffect(() => {
+    // 检查当前视频是否已被收藏
+    if (user && id) {
+      checkBookmarkStatus();
+    }
+  }, [user, id]);
+
+  const checkBookmarkStatus = async () => {
+    try {
+      const result = await isVideoBookmarked(user.$id, id);
+      setIsBookmarked(result);
+    } catch (error) {
+      console.error("Error checking bookmark status:", error);
+    }
+  };
+
+  const handleBookmark = async () => {
+    if (!user) {
+      Alert.alert("提示", "请先登录");
+      return;
+    }
+
+    // 确保 id 存在
+    if (!id) {
+      console.error("Video ID is undefined");
+      Alert.alert("错误", "视频ID无效");
+      return;
+    }
+
+    console.log("Bookmarking video with ID:", id); // 添加日志
+
+    try {
+      if (isBookmarked) {
+        await unbookmarkVideo(user.$id, id);
+        setIsBookmarked(false);
+      } else {
+        await bookmarkVideo(user.$id, id);
+        setIsBookmarked(true);
+      }
+    } catch (error) {
+      console.error("Bookmark operation failed:", error);
+      Alert.alert("错误", "操作失败，请重试");
+    }
+  };
+
+  const overlay = [
+    <Item key="bookmark" value="bookmark">
+      <Text className="text-cyan-50 p-2 rounded-md">
+        {isBookmarked ? "取消收藏" : "收藏"}
       </Text>
-    </Item>
-  ));
+    </Item>,
+  ];
 
   return (
-    <View className="flex flex-col items-center px-4 mb-14">
+    <TouchableOpacity
+      activeOpacity={0.9}
+      className="flex flex-col items-center px-4 mb-14"
+    >
       <View className="flex flex-row gap-3 items-start">
         <View className="flex justify-center items-center flex-row flex-1">
           <View className="w-[46px] h-[46px] rounded-lg border border-secondary flex justify-center items-center p-0.5">
@@ -45,11 +114,25 @@ const VideoCard = ({ title, creator, avatar, thumbnail, video }) => {
             </Text>
           </View>
         </View>
-        <View className="pt-2">
+
+        <View className="flex-row items-center">
+          <TouchableOpacity onPress={handleBookmark} className="mr-4">
+            <Image
+              source={
+                isBookmarked ? icons.bookmarkFilled : icons.bookmarkUnfilled
+              }
+              className="w-5 h-5"
+              resizeMode="contain"
+              tintColor={isBookmarked ? "#FFA001" : "#CDCDE0"}
+            />
+          </TouchableOpacity>
+
           <Popover
             overlay={overlay}
             onSelect={(v) => {
-              console.log("点击了选项", v);
+              if (v === "bookmark") {
+                handleBookmark();
+              }
             }}
             renderOverlayComponent={(nodes) => (
               <View className="bg-gray-800 text-white p-2">{nodes}</View>
@@ -67,15 +150,12 @@ const VideoCard = ({ title, creator, avatar, thumbnail, video }) => {
       {play ? (
         <>
           <Video
-            // 这里教程中的视频资源没法播放（vimeo的视频可能是控制了权限）
-            // 我们换成其他的
             source={{ uri: video }}
             className="w-full h-60 rounded-xl mt-3"
             resizeMode={ResizeMode.CONTAIN}
             useNativeControls
             shouldPlay
             onPlaybackStatusUpdate={(status) => {
-              console.log("onPlaybackStatusUpdate status", status);
               if ((status as AVPlaybackStatusSuccess)?.didJustFinish) {
                 setPlay(false);
               }
@@ -101,7 +181,7 @@ const VideoCard = ({ title, creator, avatar, thumbnail, video }) => {
           />
         </TouchableOpacity>
       )}
-    </View>
+    </TouchableOpacity>
   );
 };
 

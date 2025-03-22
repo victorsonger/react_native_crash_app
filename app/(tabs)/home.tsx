@@ -63,6 +63,8 @@ export default function Home() {
         keyExtractor={(item) => item.$id}
         renderItem={({ item }: { item: IVideoItem }) => (
           <VideoCard
+            key={item.$id}
+            id={item.$id}
             title={item.title}
             thumbnail={item.thumbnail}
             video={item.video}

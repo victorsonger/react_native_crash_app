@@ -17,6 +17,7 @@ export const appwriteConfig = {
   userCollectionId: "666da535002956b73b01",
   videoCollectionId: "666da54c001ffd58c0cb",
   storageId: "666da79a0019350f653e",
+  bookmarkCollectionId: "67de4ae80008da426bfd",
 };
 
 // 初始化appwrite sdk
@@ -152,14 +153,14 @@ export async function getUserPosts(userId) {
 
     return posts.documents;
   } catch (error) {
-    console.log('getUserPosts serror--', error);
+    console.log("getUserPosts serror--", error);
     throw error;
   }
 }
 
 // Get video posts that matches search query
 export async function searchPosts(query) {
-  console.log('searchPosts query', query);
+  console.log("searchPosts query", query);
   try {
     const posts = await databases.listDocuments(
       appwriteConfig.databaseId,
@@ -170,17 +171,16 @@ export async function searchPosts(query) {
       [Query.search("title", query)]
     );
 
-    console.log('posts==', posts);
+    console.log("posts==", posts);
 
     if (!posts) throw new Error("Something went wrong");
 
     return posts.documents;
   } catch (error) {
-    console.log('error', error)
+    console.log("error", error);
     throw error;
   }
 }
-
 
 // Sign Out
 export async function signOut() {
@@ -201,9 +201,14 @@ export async function uploadFile(file, type) {
   // 现在改成图片了
   // 我们就用ImagePicker.ImagePickerAsset格式来处理
   const { mimeType, fileName, fileSize, uri, ...rest } = file;
-  const asset = { type: mimeType, size:fileSize, name: fileName || 'imageAsset.jpg',  uri  };
+  const asset = {
+    type: mimeType,
+    size: fileSize,
+    name: fileName || "imageAsset.jpg",
+    uri,
+  };
 
-  console.log('asset---', asset);
+  console.log("asset---", asset);
 
   try {
     const uploadedFile = await storage.createFile(
@@ -212,12 +217,12 @@ export async function uploadFile(file, type) {
       asset
     );
 
-    console.log('uploadedFile---', uploadedFile);
+    console.log("uploadedFile---", uploadedFile);
 
     const fileUrl = await getFilePreview(uploadedFile.$id, type);
     return fileUrl;
   } catch (error) {
-    console.log('error--', error);
+    console.log("error--", error);
     throw error;
   }
 }
@@ -273,6 +278,188 @@ export async function createVideoPost(form) {
 
     return newPost;
   } catch (error) {
+    throw error;
+  }
+}
+
+// 添加收藏
+export async function bookmarkVideo(userId: string, videoId: string) {
+  try {
+    // 确保参数有效
+    if (!userId || !videoId) {
+      console.error("Invalid userId or videoId:", { userId, videoId });
+      return { success: false, message: "用户ID或视频ID无效" };
+    }
+
+    // 检查是否已经收藏
+    const existingBookmark = await databases.listDocuments(
+      appwriteConfig.databaseId,
+      appwriteConfig.bookmarkCollectionId,
+      [Query.equal("userId", [userId]), Query.equal("videoId", [videoId])]
+    );
+
+    if (existingBookmark.documents.length > 0) {
+      return { success: false, message: "已经收藏过了" };
+    }
+
+    // 创建收藏记录
+    const bookmark = await databases.createDocument(
+      appwriteConfig.databaseId,
+      appwriteConfig.bookmarkCollectionId,
+      ID.unique(),
+      {
+        userId,
+        videoId,
+        createdAt: new Date().toISOString(),
+      }
+    );
+
+    // 更新视频收藏计数
+    try {
+      const video = await databases.getDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.videoCollectionId,
+        videoId
+      );
+
+      await databases.updateDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.videoCollectionId,
+        videoId,
+        {
+          bookmarkCount: (video.bookmarkCount || 0) + 1,
+        }
+      );
+    } catch (error) {
+      console.error("Error updating bookmark count:", error);
+      // 继续执行，不影响收藏功能
+    }
+
+    return { success: true, bookmark };
+  } catch (error) {
+    console.error("Error bookmarking video:", error);
+    throw error;
+  }
+}
+
+// 取消收藏
+export async function unbookmarkVideo(userId: string, videoId: string) {
+  try {
+    // 确保参数有效
+    if (!userId || !videoId) {
+      console.error("Invalid userId or videoId:", { userId, videoId });
+      return { success: false, message: "用户ID或视频ID无效" };
+    }
+
+    // 查找收藏记录
+    const bookmarks = await databases.listDocuments(
+      appwriteConfig.databaseId,
+      appwriteConfig.bookmarkCollectionId,
+      [Query.equal("userId", [userId]), Query.equal("videoId", [videoId])]
+    );
+
+    if (bookmarks.documents.length === 0) {
+      return { success: false, message: "未找到收藏记录" };
+    }
+
+    // 删除收藏记录
+    await databases.deleteDocument(
+      appwriteConfig.databaseId,
+      appwriteConfig.bookmarkCollectionId,
+      bookmarks.documents[0].$id
+    );
+
+    // 更新视频收藏计数
+    try {
+      const video = await databases.getDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.videoCollectionId,
+        videoId
+      );
+
+      await databases.updateDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.videoCollectionId,
+        videoId,
+        {
+          bookmarkCount: Math.max((video.bookmarkCount || 0) - 1, 0),
+        }
+      );
+    } catch (error) {
+      console.error("Error updating bookmark count:", error);
+      // 继续执行，不影响取消收藏功能
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error unbookmarking video:", error);
+    throw error;
+  }
+}
+
+// 检查用户是否已收藏视频
+export async function isVideoBookmarked(userId: string, videoId: string) {
+  try {
+    // 确保参数有效
+    if (!userId || !videoId) {
+      console.error("Invalid userId or videoId:", { userId, videoId });
+      return false;
+    }
+
+    const bookmarks = await databases.listDocuments(
+      appwriteConfig.databaseId,
+      appwriteConfig.bookmarkCollectionId,
+      [Query.equal("userId", [userId]), Query.equal("videoId", [videoId])]
+    );
+
+    return bookmarks.documents.length > 0;
+  } catch (error) {
+    console.error("Error checking bookmark status:", error);
+    return false;
+  }
+}
+
+// 获取用户收藏的视频
+export async function getUserBookmarks(userId: string) {
+  try {
+    console.log("getUserBookmarks userId", userId);
+    // 确保参数有效
+    if (!userId) {
+      console.error("Invalid userId:", userId);
+      return [];
+    }
+
+    const bookmarks = await databases.listDocuments(
+      appwriteConfig.databaseId,
+      appwriteConfig.bookmarkCollectionId,
+      [Query.equal("userId", [userId])]
+    );
+    console.log("getUserBookmarks bookmarks", bookmarks);
+
+    // 获取收藏的视频详情
+    const videoIds = bookmarks.documents.map((bookmark) => bookmark.videoId);
+
+    console.log("getUserBookmarks videoIds", videoIds);
+
+    if (videoIds.length === 0) {
+      return [];
+    }
+
+    // 由于没有 Query.in 方法，我们可以使用多个 Promise 分别获取每个视频
+    const videoPromises = videoIds.map((video) =>
+      databases.getDocument(
+        appwriteConfig.databaseId,
+        appwriteConfig.videoCollectionId,
+        video.$id
+      )
+    );
+    console.log("getUserBookmarks videoPromises", videoPromises);
+
+    // 等待所有请求完成
+    const videos = await Promise.all(videoPromises);
+    return videos;
+  } catch (error) {
+    console.error("Error getting user bookmarks:", error);
     throw error;
   }
 }
