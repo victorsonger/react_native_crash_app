@@ -14,7 +14,7 @@ interface TabIconProps {
 
 const TabIcon: FC<TabIconProps> = ({ icon, color, name, focused }) => {
   return (
-    <View className="flex items-center justify-center gap-2">
+    <View className="flex flex-col items-center justify-center gap-1">
       <Image
         source={icon}
         resizeMode="contain"
@@ -22,7 +22,9 @@ const TabIcon: FC<TabIconProps> = ({ icon, color, name, focused }) => {
         className="w-6 h-6"
       />
       <Text
-        className={`${focused ? "font-psemibold" : "font-pregular"} text-xs`}
+        className={`${
+          focused ? "font-psemibold" : "font-pregular"
+        } text-[10px] w-20 text-center`}
         style={{ color: color }}
       >
         {name}
@@ -44,6 +46,8 @@ const TabLayout = () => {
             borderTopWidth: 1,
             borderTopColor: "#232533",
             height: 100,
+            paddingBottom: 10, // 添加底部内边距
+            paddingTop: 20, // 添加顶部内边距
           },
         }}
       >

@@ -97,7 +97,7 @@ const Create = () => {
 
       Alert.alert("Success", "Post uploaded successfully");
       router.push("/home");
-    } catch (error) {
+    } catch (error: any) {
       Alert.alert("Error", error.message);
     } finally {
       setForm({
