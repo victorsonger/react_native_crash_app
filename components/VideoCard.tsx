@@ -155,6 +155,22 @@ const VideoCard = ({
             resizeMode={ResizeMode.CONTAIN}
             useNativeControls
             shouldPlay
+            isMuted={false}
+            progressUpdateIntervalMillis={1000}
+            usePoster
+            posterSource={{ uri: thumbnail }}
+            posterStyle={{
+              width: '100%',
+              height: '100%',
+              resizeMode: 'cover',
+              borderRadius: 12,
+            }}
+            onLoad={() => {
+              console.log('Video loaded successfully');
+            }}
+            onError={(error) => {
+              console.log('Video loading error:', error);
+            }}
             onPlaybackStatusUpdate={(status) => {
               if ((status as AVPlaybackStatusSuccess)?.didJustFinish) {
                 setPlay(false);

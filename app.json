@@ -14,13 +14,19 @@
     },
     "ios": {
       "supportsTablet": true,
-      "package": "com.jsm.aora"
+      "package": "com.jsm.aora",
+      "bundleIdentifier": "com.victorsonger.Aora"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/origin/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ],
+      "package": "com.victorsonger.Aora"
     },
     "web": {
       "bundler": "metro",
