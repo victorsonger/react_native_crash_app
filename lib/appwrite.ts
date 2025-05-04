@@ -235,13 +235,24 @@ export async function getFilePreview(fileId, type) {
     if (type === "video") {
       fileUrl = storage.getFileView(appwriteConfig.storageId, fileId);
     } else if (type === "image") {
-      fileUrl = storage.getFilePreview(
+      // fileUrl = storage.getFilePreview(
+      //   appwriteConfig.storageId,
+      //   fileId,
+      //   2000,
+      //   2000,
+      //   ImageGravity.Top,
+      //   100
+      // );
+      
+      // 通过getFilePreview得到的fileUrl是一个预览url
+      // 浏览时，会收到app write的次数限制：
+      // Image transformations are blocked on your current plan.
+      // 我们尝试直接使用getFileView
+      // 可以成功，但是图片质量不会压缩
+      // TODO： 这个属于性能优化项目
+      fileUrl = storage.getFileView(
         appwriteConfig.storageId,
-        fileId,
-        2000,
-        2000,
-        ImageGravity.Top,
-        100
+        fileId
       );
     } else {
       throw new Error("Invalid file type");

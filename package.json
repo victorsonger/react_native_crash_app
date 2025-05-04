@@ -5,7 +5,7 @@
   "scripts": {
     "start": "expo start --port=8088",
     "reset-project": "node ./scripts/reset-project.js",
-    "android": "expo start --android",
+    "android": "expo run:android",
     "ios": "expo start --ios --port=8088",
     "web": "expo start --web --port=8088",
     "test": "jest --watchAll",
